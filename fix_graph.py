@@ -119,7 +119,7 @@ class FixDTPGraph:
                     continue
                 update_resp = self.__update_node(iri, prev_ifc_class_value, convert_map)
                 if not update_resp:
-                    continue
+                    raise Exception(f"Failed to update node {iri}")
             else:
                 # update asDesigned field
                 self.DTP_API.update_asdesigned_param_node(as_planned, is_as_designed=True)
