@@ -6,6 +6,7 @@
 
 import argparse
 import os
+import time
 
 import yaml
 from tqdm import tqdm
@@ -65,7 +66,7 @@ class FixDTPGraph:
 
         return filtered_node
 
-    def __update_node(self, iri, prev_ifc_class_value, convert_maps):
+    def __update_node(self, iri, prev_ifc_class_value, convert_map):
         """
         Method to update node params
 
@@ -75,7 +76,7 @@ class FixDTPGraph:
             a valid IRI of a node.
         prev_ifc_class_value: str, obligatory
             old ifcClass value
-        convert_maps
+        convert_map
             ontology ifcClass conversion maps
 
         Returns
@@ -83,7 +84,7 @@ class FixDTPGraph:
         bool
             return True if the node is updated and False otherwise.
         """
-        new_ifc_class_value = convert_maps[prev_ifc_class_value]
+        new_ifc_class_value = convert_map[prev_ifc_class_value]
         delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri, field="ifc:Class",
                                                         previous_field_value=prev_ifc_class_value)
         if delete_resp:
@@ -91,11 +92,11 @@ class FixDTPGraph:
                                                       field=self.DTP_CONFIG.get_ontology_uri('hasElementType'),
                                                       field_value=new_ifc_class_value)
 
-            return True if delete_resp and add_resp else False
+            return True if add_resp else False
         else:
             return False
 
-    def update_asplanned_dtp_nodes(self, convert_maps):
+    def update_asplanned_dtp_nodes(self, convert_map):
         """
         Updates AsDesigned parameter in as-planned element nodes
 
@@ -114,9 +115,9 @@ class FixDTPGraph:
             if isinstance(as_planned, list):
                 iri, prev_ifc_class_value = as_planned
                 # some classes are ignored
-                if convert_maps[prev_ifc_class_value] == 'ignore':
+                if convert_map[prev_ifc_class_value] == 'ignore':
                     continue
-                update_resp = self.__update_node(iri, prev_ifc_class_value, convert_maps)
+                update_resp = self.__update_node(iri, prev_ifc_class_value, convert_map)
                 if not update_resp:
                     continue
             else:
@@ -143,8 +144,10 @@ if __name__ == "__main__":
         print('Running in the simulator mode.')
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
+    log_path = os.path.join(args.log_dir, f"db_session-{time.strftime('%Y%m%d-%H%M%S')}.log")
     dtp_config = DTPConfig('DTP_API/DTP_config.xml')
     dtp_api = DTPApi(dtp_config, simulation_mode=args.simulation)
+    dtp_api.init_logger(log_path)
     prepareDTP = FixDTPGraph(dtp_config, dtp_api)
     ontology_map = yaml.safe_load(open('ontology_map.yaml'))
     num_element = prepareDTP.update_asplanned_dtp_nodes(ontology_map)
