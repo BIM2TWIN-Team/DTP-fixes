@@ -8,6 +8,12 @@ The code was extracted from the internal code of WP3.
 > **Warning**
 > This script modified multiple nodes in the graph.
 
+Clone the repo with 
+
+```shell
+git clone --recurse-submodules git@github.com:BIM2TWIN-Team/DTP-fixes.git
+```
+
 You can run the script with the below command:
 
 ```shell
