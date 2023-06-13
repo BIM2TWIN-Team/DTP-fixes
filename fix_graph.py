@@ -43,26 +43,6 @@ class FixDTPGraph:
         self.DTP_CONFIG = dtp_config
         self.DTP_API = dtp_api
 
-    def __fetch_all_element_nodes(self):
-        """
-        The method fetch all element nodes including as-planned and as-performed
-
-        Returns
-        -------
-        dict
-            Dictionary of elements
-        """
-        all_elements = self.DTP_API.fetch_element_nodes()
-        elements = all_elements
-        while 'next' in elements.keys() and elements['size'] != 0:
-            elements = self.DTP_API.fetch_element_nodes(elements['next'])
-            if elements['size'] <= 0:
-                break
-            all_elements['items'] += elements['items']
-            all_elements['size'] += elements['size']
-
-        return all_elements
-
     def __filter_asplanned(self, all_element):
         """
 
