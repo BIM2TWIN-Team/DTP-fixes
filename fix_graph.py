@@ -66,6 +66,23 @@ class FixDTPGraph:
         return filtered_node
 
     def __update_node(self, iri, prev_ifc_class_value, convert_maps):
+        """
+        Method to update node params
+
+        Parameters
+        ----------
+        iri: str, obligatory
+            a valid IRI of a node.
+        prev_ifc_class_value: str, obligatory
+            old ifcClass value
+        convert_maps
+            ontology ifcClass conversion maps
+
+        Returns
+        -------
+        bool
+            return True if the node is updated and False otherwise.
+        """
         new_ifc_class_value = convert_maps[prev_ifc_class_value]
         delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri, field="ifc:Class",
                                                         previous_field_value=prev_ifc_class_value)
@@ -87,7 +104,7 @@ class FixDTPGraph:
         int
             The number of updated nodes
         convert_maps
-            mapping from old ontology to new
+            ontology ifcClass conversion maps
         """
         num_updates = 0
         all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
