@@ -134,7 +134,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Fix DTP graph')
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
-    parser.add_argument('--log_dir', '-l', type=str, help='path to log dir', required=True)
+    parser.add_argument('--log_dir', '-l', type=str, help='path to log dir')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
 
     return parser.parse_args()
@@ -144,9 +144,6 @@ if __name__ == "__main__":
     args = parse_args()
     if args.simulation:
         print('Running in the simulator mode.')
-    if not os.path.exists(args.log_dir) and not args.revert:
-        os.makedirs(args.log_dir)
-    log_path = os.path.join(args.log_dir, f"db_session-{time.strftime('%Y%m%d-%H%M%S')}.log")
     dtp_config = DTPConfig('DTP_API/DTP_config.xml')
     dtp_api = DTPApi(dtp_config, simulation_mode=args.simulation)
 
@@ -155,6 +152,10 @@ if __name__ == "__main__":
         dtp_api.revert_last_session(args.revert)
         print(f'Session Reverted.')
     else:
+        assert args.log_dir, "Please set session log directory with --log_dir"
+        if not os.path.exists(args.log_dir):
+            os.makedirs(args.log_dir)
+        log_path = os.path.join(args.log_dir, f"db_session-{time.strftime('%Y%m%d-%H%M%S')}.log")
         dtp_api.init_logger(log_path)
         prepareDTP = FixDTPGraph(dtp_config, dtp_api)
         ontology_map = yaml.safe_load(open('ontology_map.yaml'))
