@@ -112,8 +112,9 @@ class FixDTPGraph:
         filtered_nodes = self.__filter_asplanned(all_element)
         for as_planned in tqdm(filtered_nodes['as_planned']):
             # update IfcClass field
-            # TODO: Remove False from below once a solution is found to replace ifc:Class
-            if isinstance(as_planned, list) and False:
+            if isinstance(as_planned, list):
+                # TODO: Remove continue from below once a solution is found to replace ifc:Class
+                continue
                 iri, prev_ifc_class_value = as_planned
                 # some classes are ignored
                 if convert_map[prev_ifc_class_value] == 'ignore':
