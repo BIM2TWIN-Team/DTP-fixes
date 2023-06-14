@@ -14,6 +14,8 @@ Clone the repo with
 git clone --recurse-submodules git@github.com:BIM2TWIN-Team/DTP-fixes.git
 ```
 
+Set your `DEV_TOKEN` and `DTP_DOMAIN` in `DTP_API/DTP_config.xml`
+
 You can run the script with the below command:
 
 ```shell
