@@ -88,11 +88,10 @@ class FixDTPGraph:
         delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri, field="ifc:Class",
                                                         previous_field_value=prev_ifc_class_value)
         if delete_resp:
-            add_resp = self.DTP_API.add_param_in_node(node_iri=iri,
-                                                      field=self.DTP_CONFIG.get_ontology_uri('hasElementType'),
-                                                      field_value=new_ifc_class_value)
+            link_resp = self.DTP_API.link_node_element_to_element_type(element_node_iri=iri,
+                                                                       element_type_iri=new_ifc_class_value)
 
-            return True if add_resp else False
+            return True if link_resp else False
         else:
             return False
 
@@ -113,8 +112,6 @@ class FixDTPGraph:
         for as_planned in tqdm(filtered_nodes['as_planned']):
             # update IfcClass field
             if isinstance(as_planned, list):
-                # TODO: Remove continue from below once a solution is found to replace ifc:Class
-                continue
                 iri, prev_ifc_class_value = as_planned
                 # some classes are ignored
                 if convert_map[prev_ifc_class_value] == 'ignore':
