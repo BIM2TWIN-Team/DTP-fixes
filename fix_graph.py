@@ -30,8 +30,12 @@ class FixDTPGraph:
 
     Methods
     -------
-    update_asplanned_dtp_nodes()
-        int, returns number of nodes updated
+    update_dtp_nodes(node_type, convert_map)
+        dict, returns number of as-planned and as-performed nodes updated
+    update_asplanned_dtp_nodes(target_nodes, convert_map)
+        int, returns number of as-planned nodes updated
+    update_asperf_dtp_nodes(target_nodes, convert_map)
+        int, returns number of as-performed nodes updated
     """
 
     def __init__(self, dtp_config, dtp_api):
@@ -189,6 +193,20 @@ class FixDTPGraph:
         return num_updates
 
     def update_dtp_nodes(self, node_type, convert_map):
+        """
+        Update DTP nodes
+
+        Parameters
+        ----------
+        node_type: str
+            node type
+        convert_map: dict
+            ontology ifcClass conversion maps
+        Returns
+        -------
+        dict
+            The number of updated nodes
+        """
         num_updates = {'as_planned': 0, 'as_perf': 0}
 
         all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
