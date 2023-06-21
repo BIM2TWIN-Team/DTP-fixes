@@ -19,7 +19,7 @@ Set your `DEV_TOKEN` and `DTP_DOMAIN` in `DTP_API/DTP_config.xml`
 You can run the script with the below command:
 
 ```shell
-python3 fix_graph.py --log_dir path/to/session-log/dir
+python3 fix_graph.py --log_dir path/to/session-log/dir --node_type asbuilt
 ```
 
 Please use simulation node with flag `--simulation` or `-s` if you are unsure how the script will perform in your DTP

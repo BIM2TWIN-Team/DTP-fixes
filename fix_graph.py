@@ -14,6 +14,8 @@ from tqdm import tqdm
 from DTP_API.DTP_API import DTPApi
 from DTP_API.DTP_config import DTPConfig
 
+ONTOLOGY_BASE_URL = "https://www.bim2twin.eu/ontology"
+
 
 class FixDTPGraph:
     """
@@ -44,7 +46,7 @@ class FixDTPGraph:
         self.DTP_CONFIG = dtp_config
         self.DTP_API = dtp_api
 
-    def __filter_asplanned(self, all_element):
+    def __filter_nodes(self, all_element):
         """
 
         Parameters
@@ -56,17 +58,26 @@ class FixDTPGraph:
         dict
             Dictionary of filtered elements into as-planned and as-performed
         """
-        filtered_node = {'as_planned': []}
+        filtered_node = {'as_planned': [], 'as_perf': []}
         as_designed_uri = self.DTP_CONFIG.get_ontology_uri('isAsDesigned')
+        has_element_type_uri = self.DTP_CONFIG.get_ontology_uri('hasElementType')
         for each_dict in all_element['items']:
-            if as_designed_uri not in each_dict.keys() or each_dict[as_designed_uri] is True:
-                filtered_node['as_planned'].append(each_dict['_iri'])
+            # as-designed node
+            if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
+                if as_designed_uri not in each_dict.keys():
+                    filtered_node['as_planned'].append(each_dict['_iri'])
                 if 'ifc:Class' in each_dict:
                     filtered_node['as_planned'].append([each_dict['_iri'], each_dict['ifc:Class']])
+            # as-built node
+            if each_dict[as_designed_uri] is False:
+                if 'ifc:Class' in each_dict:
+                    filtered_node['as_perf'].append([each_dict['_iri'], each_dict['ifc:Class']])
+                if has_element_type_uri in each_dict:
+                    filtered_node['as_perf'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
 
         return filtered_node
 
-    def __update_node(self, iri, prev_ifc_class_value, convert_map):
+    def __update_element_type(self, iri, prev_ifc_class_value, convert_map):
         """
         Method to update node params
 
@@ -84,45 +95,111 @@ class FixDTPGraph:
         bool
             return True if the node is updated and False otherwise.
         """
-        new_ifc_class_value = convert_map[prev_ifc_class_value]
-        delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri, field="ifc:Class",
-                                                        previous_field_value=prev_ifc_class_value)
+        if ONTOLOGY_BASE_URL in prev_ifc_class_value:
+            target_field = self.DTP_CONFIG.get_ontology_uri('hasElementType')
+            new_ifc_class_value = prev_ifc_class_value
+        else:
+            target_field = "ifc:Class"
+            new_ifc_class_value = convert_map[prev_ifc_class_value]
+
+        # remove field
+        delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri,
+                                                        field=target_field, previous_field_value=prev_ifc_class_value)
+        if not delete_resp:
+            # if deleting param failed, check if the node contain the field or not
+            node = self.DTP_API.fetch_node_with_iri(iri)['items'][0]
+            delete_resp = False if target_field in node.keys() else True
+            if not delete_resp:
+                raise Exception(f"Failed to delete {target_field} param from node {iri}")
+
         if delete_resp:
+            # link node with hasElementType
             link_resp = self.DTP_API.link_node_element_to_element_type(element_node_iri=iri,
                                                                        element_type_iri=new_ifc_class_value)
+            if not link_resp:
+                raise Exception(f"Failed to link node {iri} to {new_ifc_class_value}")
 
             return True if link_resp else False
         else:
             return False
 
-    def update_asplanned_dtp_nodes(self, convert_map):
+    def update_asplanned_dtp_nodes(self, target_nodes, convert_map):
         """
-        Updates AsDesigned parameter in as-planned element nodes
+        Updates as-planned element nodes
+
+        Parameters
+        ----------
+        target_nodes: dict
+            Dictionary with target node info
+        convert_map
+            ontology ifcClass conversion maps
 
         Returns
         -------
         int
             The number of updated nodes
-        convert_maps
-            ontology ifcClass conversion maps
         """
+        print("Updating as-designed nodes...")
         num_updates = 0
-        all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
-        filtered_nodes = self.__filter_asplanned(all_element)
-        for as_planned in tqdm(filtered_nodes['as_planned']):
+        for as_planned in tqdm(target_nodes):
             # update IfcClass field
             if isinstance(as_planned, list):
                 iri, prev_ifc_class_value = as_planned
                 # some classes are ignored
-                if convert_map[prev_ifc_class_value] == 'ignore':
-                    continue
-                update_resp = self.__update_node(iri, prev_ifc_class_value, convert_map)
-                if not update_resp:
-                    raise Exception(f"Failed to update node {iri}")
+                if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
+                    if convert_map[prev_ifc_class_value] == 'ignore':
+                        continue
+                self.__update_element_type(iri, prev_ifc_class_value, convert_map)
             else:
                 # update asDesigned field
-                self.DTP_API.update_asdesigned_param_node(as_planned, is_as_designed=True)
+                iri = as_planned
+                self.DTP_API.update_asdesigned_param_node(iri, is_as_designed=True)
             num_updates += 1
+        return num_updates
+
+    def update_asperf_dtp_nodes(self, target_nodes, convert_map):
+        """
+        Updates as-performed element nodes
+
+        Parameters
+        ----------
+        target_nodes: dict
+            Dictionary with target node info
+        convert_map
+            ontology ifcClass conversion maps
+
+        Returns
+        -------
+        int
+            The number of updated nodes
+        """
+        print("Updating as-built nodes...")
+        num_updates = 0
+        for as_planned in tqdm(target_nodes):
+            # update IfcClass field
+            iri, prev_ifc_class_value = as_planned
+            # some classes are ignored
+            if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
+                if convert_map[prev_ifc_class_value] == 'ignore':
+                    continue
+            update_resp = self.__update_element_type(iri, prev_ifc_class_value, convert_map)
+            if not update_resp:
+                raise Exception(f"Failed to update node {iri}")
+            num_updates += 1
+        return num_updates
+
+    def update_dtp_nodes(self, node_type, convert_map):
+        num_updates = {'as_planned': 0, 'as_perf': 0}
+
+        all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
+        filtered_nodes = self.__filter_nodes(all_element)
+        if node_type == 'asbuilt':
+            num_updates['as_perf'] = self.update_asperf_dtp_nodes(filtered_nodes['as_perf'], convert_map)
+        elif node_type == 'asdesigned':
+            num_updates['as_planned'] = self.update_asplanned_dtp_nodes(filtered_nodes['as_planned'], convert_map)
+        else:
+            num_updates['as_planned'] = self.update_asplanned_dtp_nodes(filtered_nodes['as_planned'], convert_map)
+            num_updates['as_perf'] = self.update_asperf_dtp_nodes(filtered_nodes['as_perf'], convert_map)
         return num_updates
 
 
@@ -134,6 +211,8 @@ def parse_args():
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
     parser.add_argument('--log_dir', '-l', type=str, help='path to log dir')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
+    parser.add_argument('--node_type', '-n', type=str, choices=['asbuilt', 'asdesigned', 'all'],
+                        help='type of nodes to be updated')
 
     return parser.parse_args()
 
@@ -151,11 +230,12 @@ if __name__ == "__main__":
         print(f'Session Reverted.')
     else:
         assert args.log_dir, "Please set session log directory with --log_dir"
+        assert args.node_type, "Please set node type with --node_type"
         if not os.path.exists(args.log_dir):
             os.makedirs(args.log_dir)
         log_path = os.path.join(args.log_dir, f"db_session-{time.strftime('%Y%m%d-%H%M%S')}.log")
         dtp_api.init_logger(log_path)
-        prepareDTP = FixDTPGraph(dtp_config, dtp_api)
+        fixDTP = FixDTPGraph(dtp_config, dtp_api)
         ontology_map = yaml.safe_load(open('ontology_map.yaml'))
-        num_element = prepareDTP.update_asplanned_dtp_nodes(ontology_map)
-        print('Number of updated element', num_element)
+        num_updates = fixDTP.update_dtp_nodes(args.node_type, ontology_map)
+        print(f"Updated {num_updates['as_planned']} as-designed nodes and {num_updates['as_perf']} as-built nodes")
