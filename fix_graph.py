@@ -71,11 +71,11 @@ class FixDTPGraph:
             if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
                 if as_designed_uri not in each_dict.keys():
                     filtered_node['as_planned'].append(each_dict['_iri'])
-                if 'ifc:Class' in each_dict:
+                if 'ifc:Class' in each_dict.keys():
                     filtered_node['as_planned'].append([each_dict['_iri'], each_dict['ifc:Class']])
             # as-built node
-            if each_dict[as_designed_uri] is False:
-                if 'ifc:Class' in each_dict:
+            if 'asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
+                if 'ifc:Class' in each_dict.keys():
                     filtered_node['as_perf'].append([each_dict['_iri'], each_dict['ifc:Class']])
                 if has_element_type_uri in each_dict.keys():
                     filtered_node['as_perf'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
@@ -152,8 +152,12 @@ class FixDTPGraph:
                 iri, prev_ifc_class_value = as_planned
                 # some classes are ignored
                 if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
-                    if convert_map[prev_ifc_class_value] == 'ignore':
-                        continue
+                    try:
+                        if convert_map[prev_ifc_class_value] == 'ignore':
+                            continue
+                    except KeyError:
+                        raise Exception(f"'{prev_ifc_class_value}' in node {iri} not found in ontology")
+
                 self.__update_element_type(iri, prev_ifc_class_value, convert_map)
             else:
                 # update asDesigned field
@@ -185,8 +189,12 @@ class FixDTPGraph:
             iri, prev_ifc_class_value = as_planned
             # some classes are ignored
             if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
-                if convert_map[prev_ifc_class_value] == 'ignore':
-                    continue
+                try:
+                    if convert_map[prev_ifc_class_value] == 'ignore':
+                        continue
+                except KeyError:
+                    raise Exception(f"'{prev_ifc_class_value}' in node {iri} not found in ontology")
+
             update_resp = self.__update_element_type(iri, prev_ifc_class_value, convert_map)
             if not update_resp:
                 raise Exception(f"Failed to update node {iri}")
@@ -209,7 +217,7 @@ class FixDTPGraph:
             The number of updated nodes
         """
         num_updates = {'as_planned': 0, 'as_perf': 0}
-
+        print("Fetching nodes...")
         all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
         filtered_nodes = self.__filter_nodes(all_element)
         if node_type == 'asbuilt':
