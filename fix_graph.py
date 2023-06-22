@@ -52,6 +52,7 @@ class FixDTPGraph:
 
     def __filter_nodes(self, all_element):
         """
+        Filter as-built and as-designed nodes according to the requirements
 
         Parameters
         ----------
@@ -225,8 +226,8 @@ class FixDTPGraph:
         elif node_type == 'asdesigned':
             num_updates['as_planned'] = self.update_asplanned_dtp_nodes(filtered_nodes['as_planned'], convert_map)
         else:
-            num_updates['as_planned'] = self.update_asplanned_dtp_nodes(filtered_nodes['as_planned'], convert_map)
             num_updates['as_perf'] = self.update_asperf_dtp_nodes(filtered_nodes['as_perf'], convert_map)
+            num_updates['as_planned'] = self.update_asplanned_dtp_nodes(filtered_nodes['as_planned'], convert_map)
         return num_updates
 
 
