@@ -62,10 +62,11 @@ class FixDTPGraph:
         dict
             Dictionary of filtered elements into as-planned and as-performed
         """
+        print("Filtering nodes...")
         filtered_node = {'as_planned': [], 'as_perf': []}
         as_designed_uri = self.DTP_CONFIG.get_ontology_uri('isAsDesigned')
         has_element_type_uri = self.DTP_CONFIG.get_ontology_uri('hasElementType')
-        for each_dict in all_element['items']:
+        for each_dict in tqdm(all_element['items']):
             # as-designed node
             if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
                 if as_designed_uri not in each_dict.keys():
@@ -76,7 +77,7 @@ class FixDTPGraph:
             if each_dict[as_designed_uri] is False:
                 if 'ifc:Class' in each_dict:
                     filtered_node['as_perf'].append([each_dict['_iri'], each_dict['ifc:Class']])
-                if has_element_type_uri in each_dict:
+                if has_element_type_uri in each_dict.keys():
                     filtered_node['as_perf'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
 
         return filtered_node
@@ -107,8 +108,8 @@ class FixDTPGraph:
             new_ifc_class_value = convert_map[prev_ifc_class_value]
 
         # remove field
-        delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri,
-                                                        field=target_field, previous_field_value=prev_ifc_class_value)
+        delete_resp = self.DTP_API.delete_param_in_node(node_iri=iri, field=target_field,
+                                                        previous_field_value=prev_ifc_class_value)
         if not delete_resp:
             # if deleting param failed, check if the node contain the field or not
             node = self.DTP_API.fetch_node_with_iri(iri)['items'][0]
