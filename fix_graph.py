@@ -237,7 +237,6 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Fix DTP graph')
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
-    parser.add_argument('--log_dir', '-l', type=str, help='path to log dir')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
     parser.add_argument('--node_type', '-n', type=str, choices=['asbuilt', 'asdesigned', 'all'],
                         help='type of nodes to be updated')
@@ -257,12 +256,7 @@ if __name__ == "__main__":
         dtp_api.revert_last_session(args.revert)
         print(f'Session Reverted.')
     else:
-        assert args.log_dir, "Please set session log directory with --log_dir"
         assert args.node_type, "Please set node type with --node_type"
-        if not os.path.exists(args.log_dir):
-            os.makedirs(args.log_dir)
-        log_path = os.path.join(args.log_dir, f"db_session-{time.strftime('%Y%m%d-%H%M%S')}.log")
-        dtp_api.init_logger(log_path)
         fixDTP = FixDTPGraph(dtp_config, dtp_api)
         ontology_map = yaml.safe_load(open('ontology_map.yaml'))
         num_updates = fixDTP.update_dtp_nodes(args.node_type, ontology_map)
