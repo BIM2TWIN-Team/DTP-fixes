@@ -12,6 +12,7 @@ from DTP_API.DTP_API import DTPApi
 from DTP_API.DTP_config import DTPConfig
 from hot_fixes.update_activities import UpdateActivities
 from hot_fixes.update_elements import UpdateElements
+from hot_fixes.update_tasks import UpdateTasks
 
 
 def parse_args():
@@ -21,7 +22,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Fix DTP graph')
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
-    parser.add_argument('--target_level', '-t', type=str, choices=['element', 'activity', 'all'],
+    parser.add_argument('--target_level', '-t', type=str, choices=['element', 'task', 'activity', 'all'],
                         help='node level to be updated', required=True)
     parser.add_argument('--node_type', '-n', type=str, choices=['asbuilt', 'asdesigned', 'all'],
                         help='type of nodes to be updated', required=True)
@@ -48,6 +49,11 @@ if __name__ == "__main__":
             num_updates = fixElements.update_element_nodes(args.node_type, element_type_map)
             print(f"Updated {num_updates['as_planned']} as-designed and {num_updates['as_perf']} as-built "
                   f"element nodes")
+
+        if args.target_level in ["task", "all"]:
+            fixTask = UpdateTasks(dtp_config, dtp_api)
+            num_updates = fixTask.update_nodes(args.node_type)
+            print(f"Updated {num_updates['as_planned']} task and {num_updates['as_perf']} action nodes")
 
         if args.target_level in ["activity", "all"]:
             fixActivity = UpdateActivities(dtp_config, dtp_api)
