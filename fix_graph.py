@@ -5,6 +5,7 @@
 # This file cannot be used without a written permission from the author(s).
 
 import argparse
+import os.path
 
 import yaml
 
@@ -39,8 +40,12 @@ if __name__ == "__main__":
 
     if args.revert:
         print(f'Reverting session from {args.revert}')
-        dtp_api.revert_last_session(args.revert)
-        print(f'Session Reverted.')
+        if os.path.isfile(args.revet):
+            dtp_api.revert_last_session(args.revert)
+        elif os.path.isdir(args.revet):
+            dtp_api.revert_sessions(args.revert)
+        else:
+            raise Exception(f"{args.revert} should be path to either a file or directory!")
     else:
 
         if args.target_level in ["element", "all"]:
