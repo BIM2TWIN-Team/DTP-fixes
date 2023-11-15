@@ -134,6 +134,39 @@ class UpdateElements:
         else:
             return False
 
+    def __update_element_node_iri(self, node_iri, updated_node_iri):
+        """
+        Update element node iri
+
+        Parameters
+        ----------
+        node_iri: str
+            iri of target node
+        updated_node_iri:str
+            updated iri of target node
+        Returns
+        -------
+        bool
+            return True if the node is updated and False otherwise.
+        """
+        node_info = self.DTP_API.fetch_node_with_iri(node_iri)
+        delete_resp = self.DTP_API.delete_node_from_graph_with_iri(node_iri)
+        if not delete_resp:
+            raise Exception(f"Failed to delete node {node_iri}")
+        progress = node_info[self.DTP_CONFIG.get_ontology_uri('progress')]
+        timestamp = node_info[self.DTP_CONFIG.get_ontology_uri('timeStamp')]
+        for out_edge in node_info['_outE']:
+            if out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('hasElementType'):
+                element_type = out_edge['_targetIRI']
+            else:
+                raise Exception("hasElementType not found!")
+            if out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'):
+                target_iri = out_edge['_targetIRI']
+            else:
+                raise Exception("intentStatusRelation not found!")
+        create_resp = self.DTP_API.create_asbuilt_node(updated_node_iri, progress, timestamp, element_type, target_iri)
+        return True if delete_resp and create_resp else False
+
     def update_asplanned_element_nodes(self, target_nodes, convert_map):
         """
         Updates as-planned element nodes
@@ -222,6 +255,16 @@ class UpdateElements:
             print("Updating as-built asDesigned field...")
         for as_perf_iri in tqdm(as_designed_ud):
             self.DTP_API.update_asdesigned_param_node(as_perf_iri, is_as_designed=False)
+            num_updates += 1
+
+        # update iri
+        if iri_ud:
+            print("Updating as-built iri ...")
+        for as_perf_iri in tqdm(iri_ud):
+            updated_as_perf_iri = as_perf_iri.replace('/as_builtifc-', '/as_built-')
+            update_resp = self.__update_element_node_iri(as_perf_iri, updated_as_perf_iri)
+            if not update_resp:
+                raise Exception(f"Failed to update iri: {as_perf_iri}")
             num_updates += 1
 
         return num_updates
