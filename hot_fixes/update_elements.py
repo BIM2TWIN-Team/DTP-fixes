@@ -62,22 +62,29 @@ class UpdateElements:
             Dictionary of filtered elements into as-planned and as-performed
         """
         print("Filtering nodes...")
-        filtered_node = {'as_planned': [], 'as_perf': []}
+        filtered_node = {
+            'as_planned': {'as_designed': [], 'type': [], 'iri': []},
+            'as_perf': {'as_designed': [], 'type': [], 'iri': []}
+        }
         as_designed_uri = self.DTP_CONFIG.get_ontology_uri('isAsDesigned')
         has_element_type_uri = self.DTP_CONFIG.get_ontology_uri('hasElementType')
         for each_dict in tqdm(all_element['items']):
             # as-designed node
             if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
                 if as_designed_uri not in each_dict.keys():
-                    filtered_node['as_planned'].append(each_dict['_iri'])
+                    filtered_node['as_planned']['as_designed'].append(each_dict['_iri'])
                 if 'ifc:Class' in each_dict.keys():
-                    filtered_node['as_planned'].append([each_dict['_iri'], each_dict['ifc:Class']])
+                    filtered_node['as_planned']['type'].append([each_dict['_iri'], each_dict['ifc:Class']])
+                if '/ifcas_built-' in each_dict['_iri']:
+                    filtered_node['as_planned']['iri'].append(each_dict['_iri'])
             # as-built node
             if 'asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
                 if 'ifc:Class' in each_dict.keys():
-                    filtered_node['as_perf'].append([each_dict['_iri'], each_dict['ifc:Class']])
+                    filtered_node['as_perf']['as_designed'].append([each_dict['_iri'], each_dict['ifc:Class']])
                 if has_element_type_uri in each_dict.keys():
-                    filtered_node['as_perf'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
+                    filtered_node['as_perf']['type'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
+                if '/as_builtifc-' in each_dict['_iri']:
+                    filtered_node['as_perf']['iri'].append(each_dict['_iri'])
 
         return filtered_node
 
@@ -145,24 +152,31 @@ class UpdateElements:
         """
         print("Updating as-designed nodes...")
         num_updates = 0
-        for as_planned in tqdm(target_nodes):
-            # update IfcClass field
-            if isinstance(as_planned, list):
-                iri, prev_ifc_class_value = as_planned
-                # some classes are ignored
-                if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
-                    try:
-                        if convert_map[prev_ifc_class_value] == 'ignore':
-                            continue
-                    except KeyError:
-                        raise Exception(f"'{prev_ifc_class_value}' in node {iri} not found in ontology")
+        as_designed_ud, type_ud, iri_ud = target_nodes['as_designed'], target_nodes['type'], target_nodes['iri']
 
-                self.__update_element_type(iri, prev_ifc_class_value, convert_map)
-            else:
-                # update asDesigned field
-                iri = as_planned
-                self.DTP_API.update_asdesigned_param_node(iri, is_as_designed=True)
+        # update node type
+        if type_ud:
+            print("Updating as-designed type nodes...")
+        for as_planned in tqdm(type_ud):
+            iri, prev_ifc_class_value = as_planned
+            # some classes are ignored
+            if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
+                try:
+                    if convert_map[prev_ifc_class_value] == 'ignore':
+                        continue
+                except KeyError:
+                    raise Exception(f"'{prev_ifc_class_value}' in node {iri} not found in ontology")
+
+            self.__update_element_type(iri, prev_ifc_class_value, convert_map)
             num_updates += 1
+
+        # update asDesigned field
+        if as_designed_ud:
+            print("Updating as-designed asDesigned field...")
+        for as_planned_iri in tqdm(as_designed_ud):
+            self.DTP_API.update_asdesigned_param_node(as_planned_iri, is_as_designed=True)
+            num_updates += 1
+
         return num_updates
 
     def update_asperf_element_nodes(self, target_nodes, convert_map):
@@ -183,9 +197,13 @@ class UpdateElements:
         """
         print("Updating as-built element nodes...")
         num_updates = 0
-        for as_planned in tqdm(target_nodes):
-            # update IfcClass field
-            iri, prev_ifc_class_value = as_planned
+        as_designed_ud, type_ud, iri_ud = target_nodes['as_designed'], target_nodes['type'], target_nodes['iri']
+
+        # update node type
+        if type_ud:
+            print("Updating as-built type nodes...")
+        for as_perf in tqdm(type_ud):
+            iri, prev_ifc_class_value = as_perf
             # some classes are ignored
             if ONTOLOGY_BASE_URL not in prev_ifc_class_value:
                 try:
@@ -198,6 +216,14 @@ class UpdateElements:
             if not update_resp:
                 raise Exception(f"Failed to update node {iri}")
             num_updates += 1
+
+        # update asDesigned field
+        if as_designed_ud:
+            print("Updating as-built asDesigned field...")
+        for as_perf_iri in tqdm(as_designed_ud):
+            self.DTP_API.update_asdesigned_param_node(as_perf_iri, is_as_designed=False)
+            num_updates += 1
+
         return num_updates
 
     def update_element_nodes(self, node_type, convert_map):
