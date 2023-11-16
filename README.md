@@ -38,7 +38,12 @@ python3 fix_graph.py --target_level element --node_type asbuilt
 Please use simulation node with flag `--simulation` or `-s` if you are unsure how the script will perform in your DTP
 domain and check the log files. `target_level` indicates the node level to be fixed, and it can
 be `element`, `task`, `activity` or `all`.  `node_type` indicate the target node type to be fixed, and it can
-be `asbuilt`, `asdesigned` or `all`. The above command fixes all as-built nodes at element level.
+be `asbuilt`, `asdesigned` or `all`. By default, above command fixes all as-built nodes at element level. If you need
+to fix specific issues (currently only support at element level), please set `fixes` flag like:
+
+```shell
+python3 fix_graph.py --target_level element --node_type asbuilt --fixes iri
+```
 
 Session file generated at `LOG_DIR/sessions` can be used to revert node updates with
 
