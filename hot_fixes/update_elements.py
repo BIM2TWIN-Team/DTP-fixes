@@ -48,7 +48,7 @@ class UpdateElements:
         self.DTP_CONFIG = dtp_config
         self.DTP_API = dtp_api
 
-    def __filter_element_nodes(self, all_element):
+    def __filter_element_nodes(self, all_element, fixes):
         """
         Filter as-built and as-designed nodes according to the requirements
 
@@ -71,19 +71,19 @@ class UpdateElements:
         for each_dict in tqdm(all_element['items']):
             # as-designed node
             if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
-                if as_designed_uri not in each_dict.keys():
+                if as_designed_uri not in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_planned']['as_designed'].append(each_dict['_iri'])
-                if 'ifc:Class' in each_dict.keys():
+                if 'ifc:Class' in each_dict.keys() and fixes in ["type", "all"]:
                     filtered_node['as_planned']['type'].append([each_dict['_iri'], each_dict['ifc:Class']])
-                if '/ifcas_built-' in each_dict['_iri']:
+                if '/ifcas_built-' in each_dict['_iri'] and fixes in ["iri", "all"]:
                     filtered_node['as_planned']['iri'].append(each_dict['_iri'])
             # as-built node
             if 'asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
-                if 'ifc:Class' in each_dict.keys():
+                if 'ifc:Class' in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_perf']['as_designed'].append([each_dict['_iri'], each_dict['ifc:Class']])
-                if has_element_type_uri in each_dict.keys():
+                if has_element_type_uri in each_dict.keys() and fixes in ["type", "all"]:
                     filtered_node['as_perf']['type'].append([each_dict['_iri'], each_dict[has_element_type_uri]])
-                if '/as_builtifc-' in each_dict['_iri']:
+                if '/as_builtifc-' in each_dict['_iri'] and fixes in ["iri", "all"]:
                     filtered_node['as_perf']['iri'].append(each_dict['_iri'])
 
         return filtered_node
@@ -269,7 +269,7 @@ class UpdateElements:
 
         return num_updates
 
-    def update_element_nodes(self, node_type, convert_map):
+    def update_element_nodes(self, node_type, fixes, convert_map):
         """
         Update element nodes
 
@@ -277,6 +277,8 @@ class UpdateElements:
         ----------
         node_type: str
             node type
+        fixes: str
+            fixes to be done
         convert_map: dict
             ontology ifcClass conversion maps
         Returns
@@ -287,7 +289,7 @@ class UpdateElements:
         num_updates = {'as_planned': 0, 'as_perf': 0}
         print("Fetching element nodes...")
         all_element = self.DTP_API.query_all_pages(self.DTP_API.fetch_element_nodes)
-        filtered_nodes = self.__filter_element_nodes(all_element)
+        filtered_nodes = self.__filter_element_nodes(all_element, fixes)
         if node_type == 'asbuilt':
             num_updates['as_perf'] = self.update_asperf_element_nodes(filtered_nodes['as_perf'], convert_map)
         elif node_type == 'asdesigned':

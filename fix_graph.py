@@ -23,10 +23,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Fix DTP graph')
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
-    parser.add_argument('--target_level', '-t', type=str, choices=['element', 'task', 'activity', 'all'],
+    parser.add_argument('--target_level', type=str, choices=['element', 'task', 'activity', 'all'],
                         help='node level to be updated', required=True)
-    parser.add_argument('--node_type', '-n', type=str, choices=['asbuilt', 'asdesigned', 'all'],
+    parser.add_argument('--node_type', type=str, choices=['asbuilt', 'asdesigned', 'all'],
                         help='type of nodes to be updated', required=True)
+    parser.add_argument('--fixes', type=str, choices=['asdesigned', 'type', 'iri', 'all'],
+                        help='type of fix needed', default='all')
 
     return parser.parse_args()
 
@@ -51,7 +53,7 @@ if __name__ == "__main__":
         if args.target_level in ["element", "all"]:
             fixElements = UpdateElements(dtp_config, dtp_api)
             element_type_map = yaml.safe_load(open('element_type_map.yaml'))
-            num_updates = fixElements.update_element_nodes(args.node_type, element_type_map)
+            num_updates = fixElements.update_element_nodes(args.node_type, args.fixes, element_type_map)
             print(f"Updated {num_updates['as_planned']} as-designed and {num_updates['as_perf']} as-built "
                   f"element nodes")
 
