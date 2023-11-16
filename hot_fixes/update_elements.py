@@ -153,24 +153,31 @@ class UpdateElements:
         delete_resp = self.DTP_API.delete_node_from_graph_with_iri(node_iri)
         if not delete_resp:
             raise Exception(f"Failed to delete node {node_iri}")
+
         progress = node_info[self.DTP_CONFIG.get_ontology_uri('progress')]
         timestamp = node_info[self.DTP_CONFIG.get_ontology_uri('timeStamp')]
         geometric_defect = None
+
         for out_edge in node_info['_outE']:
             if not out_edge['_label'] in [self.DTP_CONFIG.get_ontology_uri('hasElementType'),
                                           self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'),
                                           self.DTP_CONFIG.get_ontology_uri('hasGeometricDefect')]:
                 raise Exception(
                     f"intentStatusRelation, hasGeometricDefect or hasElementType not found! {out_edge['_label']}")
+
             if out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('hasElementType'):
                 element_type = out_edge['_targetIRI']
+
             elif out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'):
                 target_iri = out_edge['_targetIRI']
+
             elif out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('hasGeometricDefect'):
                 geometric_defect = out_edge['_targetIRI']
+
         create_resp = self.DTP_API.create_asbuilt_node(updated_node_iri, progress, timestamp, element_type, target_iri)
         link_resp = self.DTP_API.link_node_element_to_defect(updated_node_iri,
                                                              geometric_defect) if geometric_defect else True
+
         return True if create_resp and link_resp else False
 
     def update_asplanned_element_nodes(self, target_nodes, convert_map):

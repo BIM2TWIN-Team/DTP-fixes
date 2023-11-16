@@ -6,6 +6,7 @@ This repo fixes issues in BIM2TWIN DTP originated from Orange IFC injector. The 
     * Add `asDesigned` to nodes
     * Remove `ifc:Class` from nodes
     * Add `https://www.bim2twin.eu/ontology/Core#hasElementType` as links
+    * Fix node IRI
 * Task level fixes
     * Remove `https://www.bim2twin.eu/ontology/Core#hasTaskType` as node field
     * Add `https://www.bim2twin.eu/ontology/Core#hasTaskType` as links
@@ -18,7 +19,7 @@ on [DTP_API](https://github.com/BIM2TWIN-Team/DTP_API).
 
 ## How to run the script
 
-> **Warning**
+> [!CAUTION]
 > This script modifies multiple nodes in the graph.
 
 Clone the repo with
@@ -38,8 +39,10 @@ python3 fix_graph.py --target_level element --node_type asbuilt
 Please use simulation node with flag `--simulation` or `-s` if you are unsure how the script will perform in your DTP
 domain and check the log files. `target_level` indicates the node level to be fixed, and it can
 be `element`, `task`, `activity` or `all`.  `node_type` indicate the target node type to be fixed, and it can
-be `asbuilt`, `asdesigned` or `all`. By default, above command fixes all as-built nodes at element level. If you need
-to fix specific issues (currently only support at element level), please set `fixes` flag like:
+be `asbuilt`, `asdesigned` or `all`. By default, above command runs all fixes on as-built nodes at element level. If you
+want to run one specific fix (currently only support at element level), please set `fixes`. `fixes`
+includes `asdesigned` - add asDesigned param, `type` - remove type as node param and add as link, `iri` - fix node iri
+and `all`. The below command fixes iri of all as-built element nodes.
 
 ```shell
 python3 fix_graph.py --target_level element --node_type asbuilt --fixes iri
@@ -49,4 +52,10 @@ Session file generated at `LOG_DIR/sessions` can be used to revert node updates 
 
 ```shell
 python3 fix_graph.py --revert LOG_DIR/sessions/db_session-dd-tt.log
+```
+
+or revert multiple session at `LOG_DIR/sessions` by 
+
+```shell
+python3 fix_graph.py --revert LOG_DIR/sessions
 ```
