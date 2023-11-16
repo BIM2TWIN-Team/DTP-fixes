@@ -24,9 +24,9 @@ def parse_args():
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
     parser.add_argument('--target_level', type=str, choices=['element', 'task', 'activity', 'all'],
-                        help='node level to be updated', required=True)
+                        help='node level to be updated')
     parser.add_argument('--node_type', type=str, choices=['asbuilt', 'asdesigned', 'all'],
-                        help='type of nodes to be updated', required=True)
+                        help='type of nodes to be updated')
     parser.add_argument('--fixes', type=str, choices=['asdesigned', 'type', 'iri', 'all'],
                         help='type of fix needed', default='all')
 
@@ -42,13 +42,16 @@ if __name__ == "__main__":
 
     if args.revert:
         print(f'Reverting session from {args.revert}')
-        if os.path.isfile(args.revet):
+        if os.path.isfile(args.revert):
             dtp_api.revert_last_session(args.revert)
-        elif os.path.isdir(args.revet):
+        elif os.path.isdir(args.revert):
             dtp_api.revert_sessions(args.revert)
         else:
             raise Exception(f"{args.revert} should be path to either a file or directory!")
     else:
+
+        assert args.target_level in ['element', 'task', 'activity', 'all'], "Target level not set!"
+        assert args.node_type in ['asbuilt', 'asdesigned', 'all'], "Node type not set!"
 
         if args.target_level in ["element", "all"]:
             fixElements = UpdateElements(dtp_config, dtp_api)

@@ -70,7 +70,7 @@ class UpdateElements:
         has_element_type_uri = self.DTP_CONFIG.get_ontology_uri('hasElementType')
         for each_dict in tqdm(all_element['items']):
             # as-designed node
-            if 'ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
+            if '/ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
                 if as_designed_uri not in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_planned']['as_designed'].append(each_dict['_iri'])
                 if 'ifc:Class' in each_dict.keys() and fixes in ["type", "all"]:
@@ -78,7 +78,7 @@ class UpdateElements:
                 if '/ifcas_built-' in each_dict['_iri'] and fixes in ["iri", "all"]:
                     filtered_node['as_planned']['iri'].append(each_dict['_iri'])
             # as-built node
-            if 'asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
+            if '/asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
                 if 'ifc:Class' in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_perf']['as_designed'].append([each_dict['_iri'], each_dict['ifc:Class']])
                 if has_element_type_uri in each_dict.keys() and fixes in ["type", "all"]:
@@ -149,23 +149,29 @@ class UpdateElements:
         bool
             return True if the node is updated and False otherwise.
         """
-        node_info = self.DTP_API.fetch_node_with_iri(node_iri)
+        node_info = self.DTP_API.fetch_node_with_iri(node_iri)['items'][0]
         delete_resp = self.DTP_API.delete_node_from_graph_with_iri(node_iri)
         if not delete_resp:
             raise Exception(f"Failed to delete node {node_iri}")
         progress = node_info[self.DTP_CONFIG.get_ontology_uri('progress')]
         timestamp = node_info[self.DTP_CONFIG.get_ontology_uri('timeStamp')]
+        geometric_defect = None
         for out_edge in node_info['_outE']:
+            if not out_edge['_label'] in [self.DTP_CONFIG.get_ontology_uri('hasElementType'),
+                                          self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'),
+                                          self.DTP_CONFIG.get_ontology_uri('hasGeometricDefect')]:
+                raise Exception(
+                    f"intentStatusRelation, hasGeometricDefect or hasElementType not found! {out_edge['_label']}")
             if out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('hasElementType'):
                 element_type = out_edge['_targetIRI']
-            else:
-                raise Exception("hasElementType not found!")
-            if out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'):
+            elif out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('intentStatusRelation'):
                 target_iri = out_edge['_targetIRI']
-            else:
-                raise Exception("intentStatusRelation not found!")
+            elif out_edge['_label'] == self.DTP_CONFIG.get_ontology_uri('hasGeometricDefect'):
+                geometric_defect = out_edge['_targetIRI']
         create_resp = self.DTP_API.create_asbuilt_node(updated_node_iri, progress, timestamp, element_type, target_iri)
-        return True if delete_resp and create_resp else False
+        link_resp = self.DTP_API.link_node_element_to_defect(updated_node_iri,
+                                                             geometric_defect) if geometric_defect else True
+        return True if create_resp and link_resp else False
 
     def update_asplanned_element_nodes(self, target_nodes, convert_map):
         """
