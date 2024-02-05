@@ -69,6 +69,7 @@ class UpdateElements:
         as_designed_uri = self.DTP_CONFIG.get_ontology_uri('isAsDesigned')
         has_element_type_uri = self.DTP_CONFIG.get_ontology_uri('hasElementType')
         for each_dict in tqdm(all_element['items']):
+
             # as-designed node
             if '/ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
                 if as_designed_uri not in each_dict.keys() and fixes in ["asdesigned", "all"]:
@@ -336,5 +337,6 @@ if __name__ == "__main__":
 
     fixElements = UpdateElements(dtp_config, dtp_api)
     element_type_map = yaml.safe_load(open('element_type_map.yaml'))
-    num_updates = fixElements.update_element_nodes(args.node_type, element_type_map)
+    fixes = 'asdesigned'
+    num_updates = fixElements.update_element_nodes(args.node_type, fixes, element_type_map)
     print(f"Updated {num_updates['as_planned']} as-designed and {num_updates['as_perf']} as-built element nodes")

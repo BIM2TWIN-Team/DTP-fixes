@@ -7,20 +7,16 @@
 import argparse
 import os.path
 
-import yaml
-
-from DTP_API.DTP_API import DTPApi
-from DTP_API.DTP_config import DTPConfig
-from hot_fixes.update_activities import UpdateActivities
-from hot_fixes.update_elements import UpdateElements
-from hot_fixes.update_tasks import UpdateTasks
+from DTP_API_DTC.DTP_API import DTPApi
+from DTP_API_DTC.DTP_config import DTPConfig
+from hot_fixes_dtc.update_elements import UpdateElements
 
 
 def parse_args():
     """
     Get parameters from user
     """
-    parser = argparse.ArgumentParser(description='Fix DTP graph with B2T ontology')
+    parser = argparse.ArgumentParser(description='Fix DTP graph with DTC ontology')
     parser.add_argument('--simulation', '-s', default=False, action='store_true')
     parser.add_argument('--revert', '-r', type=str, help='path to session log file')
     parser.add_argument('--target_level', type=str, choices=['element', 'task', 'activity', 'all'],
@@ -37,7 +33,7 @@ if __name__ == "__main__":
     args = parse_args()
     if args.simulation:
         print('Running in the simulator mode.')
-    dtp_config = DTPConfig('DTP_API/DTP_config.xml')
+    dtp_config = DTPConfig('DTP_API_DTC/DTP_config.xml')
     dtp_api = DTPApi(dtp_config, simulation_mode=args.simulation)
 
     if args.revert:
@@ -55,17 +51,6 @@ if __name__ == "__main__":
 
         if args.target_level in ["element", "all"]:
             fixElements = UpdateElements(dtp_config, dtp_api)
-            element_type_map = yaml.safe_load(open('element_type_map.yaml'))
-            num_updates = fixElements.update_element_nodes(args.node_type, args.fixes, element_type_map)
+            num_updates = fixElements.update_element_nodes(args.node_type, args.fixes)
             print(f"Updated {num_updates['as_planned']} as-designed and {num_updates['as_perf']} as-built "
                   f"element nodes")
-
-        if args.target_level in ["task", "all"]:
-            fixTask = UpdateTasks(dtp_config, dtp_api)
-            num_updates = fixTask.update_nodes(args.node_type)
-            print(f"Updated {num_updates['as_planned']} task and {num_updates['as_perf']} action nodes")
-
-        if args.target_level in ["activity", "all"]:
-            fixActivity = UpdateActivities(dtp_config, dtp_api)
-            num_updates = fixActivity.update_nodes(args.node_type)
-            print(f"Updated {num_updates['as_planned']} activity and {num_updates['as_perf']} operation nodes")

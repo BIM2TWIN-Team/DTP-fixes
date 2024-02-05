@@ -2,3 +2,7 @@
 	path = DTP_API
 	url = git@github.com:BIM2TWIN-Team/DTP_API.git
 	branch = main
+[submodule "DTP_API_DTC"]
+	path = DTP_API_DTC
+	url = git@github.com:BIM2TWIN-Team/DTP_API-journal.git
+	branch = main
