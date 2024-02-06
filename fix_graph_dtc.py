@@ -23,7 +23,7 @@ def parse_args():
                         help='node level to be updated')
     parser.add_argument('--node_type', type=str, choices=['asbuilt', 'asdesigned', 'all'],
                         help='type of nodes to be updated')
-    parser.add_argument('--fixes', type=str, choices=['asdesigned', 'type', 'iri', 'all'],
+    parser.add_argument('--fixes', type=str, choices=['asdesigned', 'progress', 'all'],
                         help='type of fix needed', default='all')
 
     return parser.parse_args()
@@ -54,3 +54,9 @@ if __name__ == "__main__":
             num_updates = fixElements.update_element_nodes(args.node_type, args.fixes)
             print(f"Updated {num_updates['as_planned']} as-designed and {num_updates['as_perf']} as-built "
                   f"element nodes")
+
+        if args.target_level == "task":
+            raise NotImplementedError("task level fixes not found!")
+
+        if args.target_level == "activity":
+            raise NotImplementedError("activity level fixes not found!")

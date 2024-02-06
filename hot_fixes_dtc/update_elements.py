@@ -63,15 +63,14 @@ class UpdateElements:
         """
         print("Filtering nodes...")
         filtered_node = {
-            'as_planned': {'as_designed': [], 'type': [], 'iri': []},
+            'as_planned': {'as_designed': [], 'progress': [], 'iri': []},
             'as_perf': {'as_designed': [], 'type': [], 'iri': []}
         }
         b2t_asdesigned_iri = B2T_BASE_URL + "/Core#isAsDesigned"
         for each_dict in tqdm(all_element['items']):
 
-            a = b2t_asdesigned_iri in each_dict.keys()
-            # as-designed node
-            if b2t_asdesigned_iri in each_dict.keys():
+            # as-designed
+            if b2t_asdesigned_iri in each_dict.keys() and fixes in ['asdesigned', 'all']:
                 node_iri, as_design_val = each_dict['_iri'], each_dict[b2t_asdesigned_iri]
                 # as-designed node
                 if as_design_val:
@@ -79,6 +78,12 @@ class UpdateElements:
                 # as-built node
                 if not as_design_val:
                     filtered_node['as_perf']['as_designed'].append((node_iri, as_design_val))
+
+            # progress
+            if self.DTP_CONFIG.get_ontology_uri('progress') in each_dict.keys() and self.DTP_CONFIG.get_ontology_uri(
+                    'isAsDesigned') and fixes in ['progress', 'all']:
+                node_iri, progress_val = each_dict['_iri'], each_dict[self.DTP_CONFIG.get_ontology_uri('progress')]
+                filtered_node['as_planned']['progress'].append((each_dict['_iri'], progress_val))
 
         return filtered_node
 
@@ -110,7 +115,17 @@ class UpdateElements:
                 add_resp = self.DTP_API.add_param_in_node(node_iri=as_planned_iri,
                                                           field=self.DTP_CONFIG.get_ontology_uri('isAsDesigned'),
                                                           field_value=as_designed_val)
-                assert add_resp, f"Cant update isAsDesigned of node {target_nodes['iri']}"
+                assert add_resp, f"Cant update isAsDesigned of node {as_planned_iri}"
+            num_updates += 1
+
+        # remove progress field
+        if target_nodes['progress']:
+            print("Removing progress...")
+        for as_planned_iri, progress_val in tqdm(target_nodes['progress']):
+            delete_resp = self.DTP_API.delete_param_in_node(node_iri=as_planned_iri,
+                                                            field=self.DTP_CONFIG.get_ontology_uri('progress'),
+                                                            previous_field_value=progress_val)
+            assert delete_resp, f"Cant remove progress of node {as_planned_iri}"
             num_updates += 1
 
         return num_updates
@@ -123,8 +138,6 @@ class UpdateElements:
         ----------
         target_nodes: dict
             Dictionary with target node info
-        convert_map
-            ontology ifcClass conversion maps
 
         Returns
         -------
@@ -133,7 +146,7 @@ class UpdateElements:
         """
         print("Updating as-built element nodes...")
         num_updates = 0
-        b2t_asdesigned = "https://www.bim2twin.eu/ontology/Core#isAsDesigned"
+        b2t_asdesigned = B2T_BASE_URL + "/Core#isAsDesigned"
 
         # update asDesigned field
         if target_nodes['as_designed']:
