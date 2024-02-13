@@ -67,6 +67,8 @@ python3 fix_graph.py --target_level element --node_type asbuilt --fixes iri
 
 ### DTC ontology
 
+The below command fixes `asdesigned` iri of as-designed element nodes:
+
 ```shell
 python3 fix_graph_dtc.py --target_level element --node_type asdesigned 
 ```
@@ -78,8 +80,7 @@ python3 fix_graph_dtc.py --target_level element --node_type asdesigned
 | fixes        | asdesigned,  progress, all |
 
 `fixes` for [DTC ontology](https://dtc-ontology.cms.ed.tum.de/ontology/index.html) includes `asdesigned` - fix asDesigned iri, `progress` - remove progress param from
-as-designed nodes, and `all`. The below command fixes iri of all as-built element nodes. You can run the script with the
-below command for DTC ontology:
+as-designed nodes, and `all`.
 
 ## Revert changes
 
