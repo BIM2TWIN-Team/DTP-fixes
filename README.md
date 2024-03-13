@@ -21,6 +21,7 @@ This repo fixes issues in BIM2TWIN DTP originated from Orange IFC injector. The 
 * Element level fixes
     * Fixed `asDesigned` IRI
     * Remove `https://dtc-ontology.cms.ed.tum.de/ontology#progress` from as-planned nodes
+    * Remove all as-built node
 
 The code was extracted from the internal code of WP3 and relies heavily
 on [DTP_API](https://github.com/BIM2TWIN-Team/DTP_API)

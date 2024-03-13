@@ -23,7 +23,7 @@ def parse_args():
                         help='node level to be updated')
     parser.add_argument('--node_type', type=str, choices=['asbuilt', 'asdesigned', 'all'],
                         help='type of nodes to be updated')
-    parser.add_argument('--fixes', type=str, choices=['asdesigned', 'progress', 'all'],
+    parser.add_argument('--fixes', type=str, choices=['asdesigned', 'progress', 'delete', 'all'],
                         help='type of fix needed', default='all')
 
     return parser.parse_args()
