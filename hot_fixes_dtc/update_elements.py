@@ -64,7 +64,7 @@ class UpdateElements:
         print("Filtering nodes...")
         filtered_node = {
             'as_planned': {'as_designed': [], 'progress': [], 'iri': []},
-            'as_perf': {'as_designed': [], 'type': [], 'iri': [], 'delete': []}
+            'as_perf': {'as_designed': [], 'type': [], 'iri': [], 'delete': [], 'timestamp': []}
         }
         b2t_asdesigned_iri = B2T_BASE_URL + "/Core#isAsDesigned"
         for each_dict in tqdm(all_element['items']):
@@ -88,6 +88,13 @@ class UpdateElements:
             # delete as-perf element nodes
             if not each_dict[self.DTP_CONFIG.get_ontology_uri('isAsDesigned')] and 'delete' in fixes:
                 filtered_node['as_perf']['delete'].append(each_dict['_iri'])
+
+            # update as-built timestamp
+            old_date = "2022-03-15T00:00:00"
+            new_date = "2022-03-01T00:00:00"
+            if not each_dict[self.DTP_CONFIG.get_ontology_uri('isAsDesigned')]:
+                if each_dict[self.DTP_CONFIG.get_ontology_uri('timeStamp')] == old_date and 'timestamp' in fixes:
+                    filtered_node['as_perf']['timestamp'].append((each_dict['_iri'], old_date, new_date))
 
         return filtered_node
 
@@ -154,7 +161,7 @@ class UpdateElements:
 
         # update asDesigned field
         if target_nodes['as_designed']:
-            print("Updating as-designed IRI...")
+            print("Updating is-as-designed value...")
             for as_perf_iri, as_designed_val in tqdm(target_nodes['as_designed']):
                 delete_resp = self.DTP_API.delete_param_in_node(node_iri=as_perf_iri, field=b2t_asdesigned,
                                                                 previous_field_value=as_designed_val)
@@ -163,7 +170,22 @@ class UpdateElements:
                                                               field=self.DTP_CONFIG.get_ontology_uri('isAsDesigned'),
                                                               field_value=as_designed_val)
                     assert add_resp, f"Cant update isAsDesigned of node {as_perf_iri}"
-                num_updates += 1
+                    num_updates += 1
+
+        # update timestamp field
+        if target_nodes['timestamp']:
+            print("Updating as-built timestamp...")
+            for as_perf_iri, old_date, new_date in tqdm(target_nodes['timestamp']):
+                delete_resp = self.DTP_API.delete_param_in_node(node_iri=as_perf_iri,
+                                                                field=self.DTP_CONFIG.get_ontology_uri('timeStamp'),
+                                                                previous_field_value=old_date,
+                                                                field_placeholder=old_date)
+                if delete_resp:
+                    add_resp = self.DTP_API.add_param_in_node(node_iri=as_perf_iri,
+                                                              field=self.DTP_CONFIG.get_ontology_uri('timeStamp'),
+                                                              field_value=new_date)
+                    assert add_resp, f"Cant update as-built timestamp of node {as_perf_iri}"
+                    num_updates += 1
 
         # delete nodes
         if target_nodes['delete']:
