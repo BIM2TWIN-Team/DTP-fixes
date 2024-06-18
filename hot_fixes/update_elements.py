@@ -71,15 +71,20 @@ class UpdateElements:
         for each_dict in tqdm(all_element['items']):
 
             # as-designed node
-            if '/ifc' in each_dict['_iri'] or each_dict[as_designed_uri] is True:
+            condition_ad = '/ifc' in each_dict['_iri'] or each_dict[
+                as_designed_uri] is True if as_designed_uri in each_dict else '/ifc' in each_dict['_iri']
+            if condition_ad:
                 if as_designed_uri not in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_planned']['as_designed'].append(each_dict['_iri'])
                 if 'ifc:Class' in each_dict.keys() and fixes in ["type", "all"]:
                     filtered_node['as_planned']['type'].append([each_dict['_iri'], each_dict['ifc:Class']])
                 if '/ifcas_built-' in each_dict['_iri'] and fixes in ["iri", "all"]:
                     filtered_node['as_planned']['iri'].append(each_dict['_iri'])
+
             # as-built node
-            if '/asbuilt' in each_dict['_iri'] or each_dict[as_designed_uri] is False:
+            condition_ab = '/asbuilt' in each_dict['_iri'] or each_dict[
+                as_designed_uri] if as_designed_uri in each_dict else '/ifc' in each_dict['_iri']
+            if condition_ab:
                 if 'ifc:Class' in each_dict.keys() and fixes in ["asdesigned", "all"]:
                     filtered_node['as_perf']['as_designed'].append([each_dict['_iri'], each_dict['ifc:Class']])
                 if has_element_type_uri in each_dict.keys() and fixes in ["type", "all"]:
